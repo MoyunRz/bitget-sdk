@@ -1,6 +1,6 @@
 package config
 
-const (
+var (
 	//restApi config
 	BaseUrl       = "https://api.bitget.com"
 	ApiKey        = "bg_b2f572a5c924ad2ad59e62710914d9a8"
@@ -12,3 +12,9 @@ const (
 	PublicWsUrl  = "wss://ws.bitget.com/v2/ws/public"
 	PrivateWsUrl = "wss://ws.bitget.com/v2/ws/private"
 )
+
+func InitConfig(apiKey, secretKey, passphrase string) {
+	ApiKey = apiKey
+	SecretKey = secretKey
+	PASSPHRASE = passphrase
+}
