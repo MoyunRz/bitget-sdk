@@ -31,20 +31,20 @@ const (
 	/**
 	 * SPOT URL
 	 */
-	SpotPublic  = "/api/spot/v1/public"
-	SpotMarket  = "/api/spot/v1/market"
-	SpotAccount = "/api/spot/v1/account"
-	SpotTrade   = "/api/spot/v1/trade"
+	SpotPublic  = "/api/v2/spot/public"
+	SpotMarket  = "/api/v2/spot/market"
+	SpotAccount = "/api/v2/spot/account"
+	SpotTrade   = "/api/v2/spot/trade"
 
 	/**
 	 * MIX URL
 	 */
-	MixPlan     = "/api/mix/v1/plan"
-	MixMarket   = "/api/mix/v1/market"
-	MixAccount  = "/api/mix/v1/account"
-	MixOrder    = "/api/mix/v1/order"
-	MixPosition = "/api/mix/v1/position"
-	MixTrace    = "/api/mix/v1/trace"
+	MixPlan     = "/api/v2/mix/plan"
+	MixMarket   = "/api/v2/mix/market"
+	MixAccount  = "/api/v2/mix/account"
+	MixOrder    = "/api/v2/mix/order"
+	MixPosition = "/api/v2/mix/position"
+	MixTrace    = "/api/v2/mix/trace"
 
 	/**
 	websocket

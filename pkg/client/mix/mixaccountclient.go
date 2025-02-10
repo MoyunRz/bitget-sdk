@@ -64,7 +64,7 @@ func (p *MixAccountClient) SetLeverage(params account.SetLeveragerReq) (string, 
 		return "", jsonErr
 	}
 
-	uri := constants.MixAccount + "/setLeverage"
+	uri := constants.MixAccount + "/set-leverage"
 
 	resp, err := p.BitgetRestClient.DoPost(uri, postBody)
 

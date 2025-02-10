@@ -3,8 +3,8 @@ package config
 var (
 	//restApi config
 	BaseUrl       = "https://api.bitget.com"
-	ApiKey        = "bg_b2f572a5c924ad2ad59e62710914d9a8"
-	SecretKey     = "aa3d8bc37f3cee4f30f798813da2e5fa07c2b3db24d5691653add36513aeaa2a"
+	ApiKey        = "bg_912e9f7e29f77def9f76613852e19898"
+	SecretKey     = "d4df54759dfe9d6aedd9ea4774cf9b95b2b0593ab19cc82d588c64478e8c4314"
 	PASSPHRASE    = "Lanan666"
 	TimeoutSecond = 30
 

@@ -30,7 +30,7 @@ func (p *MixOrderClient) PlaceOrder(params order.PlaceOrderReq) (order.Response,
 		return order.Response{}, jsonErr
 	}
 
-	uri := constants.MixOrder + "/placeOrder"
+	uri := constants.MixOrder + "/place-order"
 
 	resp, err := p.BitgetRestClient.DoPost(uri, postBody)
 
