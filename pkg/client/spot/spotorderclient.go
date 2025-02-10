@@ -2,8 +2,6 @@ package spot
 
 import (
 	"github.com/MoyunRz/bitget-sdk/common"
-	"github.com/MoyunRz/bitget-sdk/constants"
-	"github.com/MoyunRz/bitget-sdk/pkg/model/spot/order"
 	"github.com/MoyunRz/bitget-sdk/utils"
 )
 
@@ -16,173 +14,103 @@ func (p *SpotOrderClient) Init() *SpotOrderClient {
 	return p
 }
 
-/*
-*
-获取账单流水
-*/
-func (p *SpotOrderClient) Orders(params order.OrdersReq) (string, error) {
-
+// normal order
+func (p *SpotOrderClient) PlaceOrder(params map[string]string) (string, error) {
 	postBody, jsonErr := utils.ToJson(params)
-
 	if jsonErr != nil {
 		return "", jsonErr
 	}
-
-	uri := constants.SpotTrade + "/orders"
-
-	resp, err := p.BitgetRestClient.DoPost(uri, postBody)
-
+	resp, err := p.BitgetRestClient.DoPost("/api/v2/spot/trade/place-order", postBody)
 	return resp, err
 }
 
-/*
-*
-获取账单流水
-*/
-func (p *SpotOrderClient) BatchOrders(params order.BatchOrdersReq) (string, error) {
-
+func (p *SpotOrderClient) BatchPlaceOrder(params map[string]string) (string, error) {
 	postBody, jsonErr := utils.ToJson(params)
-
 	if jsonErr != nil {
 		return "", jsonErr
 	}
-
-	uri := constants.SpotTrade + "/batch-orders"
-
-	resp, err := p.BitgetRestClient.DoPost(uri, postBody)
-
+	resp, err := p.BitgetRestClient.DoPost("/api/v2/spot/trade/batch-orders", postBody)
 	return resp, err
 }
 
-/*
-*
-获取账单流水
-*/
-func (p *SpotOrderClient) CancelOrder(params order.CancelOrderReq) (string, error) {
-
+func (p *SpotOrderClient) CancelOrder(params map[string]string) (string, error) {
 	postBody, jsonErr := utils.ToJson(params)
-
 	if jsonErr != nil {
 		return "", jsonErr
 	}
-
-	uri := constants.SpotTrade + "/cancel-order"
-
-	resp, err := p.BitgetRestClient.DoPost(uri, postBody)
-
+	resp, err := p.BitgetRestClient.DoPost("/api/v2/spot/trade/cancel-order", postBody)
 	return resp, err
 }
 
-/*
-*
-获取账单流水
-*/
-func (p *SpotOrderClient) CancelBatchOrders(params order.CancelBatchOrdersReq) (string, error) {
-
+func (p *SpotOrderClient) BatchCancelOrders(params map[string]string) (string, error) {
 	postBody, jsonErr := utils.ToJson(params)
-
 	if jsonErr != nil {
 		return "", jsonErr
 	}
-
-	uri := constants.SpotTrade + "/cancel-batch-orders"
-
-	resp, err := p.BitgetRestClient.DoPost(uri, postBody)
-
+	resp, err := p.BitgetRestClient.DoPost("/api/v2/spot/trade/batch-cancel-order", postBody)
 	return resp, err
 }
 
-/*
-*
-获取账单流水
-*/
-func (p *SpotOrderClient) OrderInfo(params order.OrderInfoReq) (string, error) {
-
-	postBody, jsonErr := utils.ToJson(params)
-
-	if jsonErr != nil {
-		return "", jsonErr
-	}
-
-	uri := constants.SpotTrade + "/orderInfo"
-
-	resp, err := p.BitgetRestClient.DoPost(uri, postBody)
-
+func (p *SpotOrderClient) OrdersHistory(params map[string]string) (string, error) {
+	resp, err := p.BitgetRestClient.DoGet("/api/v2/spot/trade/history-orders", params)
 	return resp, err
 }
 
-/*
-*
-获取账单流水
-*/
-func (p *SpotOrderClient) OpenOrders(params order.OpenOrdersReq) (string, error) {
-
-	postBody, jsonErr := utils.ToJson(params)
-
-	if jsonErr != nil {
-		return "", jsonErr
-	}
-
-	uri := constants.SpotTrade + "/open-orders"
-
-	resp, err := p.BitgetRestClient.DoPost(uri, postBody)
-
+func (p *SpotOrderClient) OrdersPending(params map[string]string) (string, error) {
+	resp, err := p.BitgetRestClient.DoGet("/api/v2/spot/trade/unfilled-orders", params)
 	return resp, err
 }
 
-/*
-*
-获取账单流水
-*/
-func (p *SpotOrderClient) History(params order.HistoryReq) (string, error) {
-
-	postBody, jsonErr := utils.ToJson(params)
-
-	if jsonErr != nil {
-		return "", jsonErr
-	}
-
-	uri := constants.SpotTrade + "/history"
-
-	resp, err := p.BitgetRestClient.DoPost(uri, postBody)
-
+func (p *SpotOrderClient) Fills(params map[string]string) (string, error) {
+	resp, err := p.BitgetRestClient.DoGet("/api/v2/spot/trade/fills", params)
 	return resp, err
 }
 
-/*
-*
-获取账单流水
-*/
-func (p *SpotOrderClient) Fills(params order.FillsReq) (string, error) {
-
+// plan
+func (p *SpotOrderClient) PlacePlanOrder(params map[string]string) (string, error) {
 	postBody, jsonErr := utils.ToJson(params)
-
 	if jsonErr != nil {
 		return "", jsonErr
 	}
-
-	uri := constants.SpotTrade + "/fills"
-
-	resp, err := p.BitgetRestClient.DoPost(uri, postBody)
-
+	resp, err := p.BitgetRestClient.DoPost("/api/v2/spot/trade/place-plan-order", postBody)
 	return resp, err
 }
 
-/*
-*
-获取账单流水
-*/
-func (p *SpotOrderClient) ChangeDepth(params order.ChangeDepthReq) (string, error) {
-
+func (p *SpotOrderClient) CancelPlanOrder(params map[string]string) (string, error) {
 	postBody, jsonErr := utils.ToJson(params)
-
 	if jsonErr != nil {
 		return "", jsonErr
 	}
+	resp, err := p.BitgetRestClient.DoPost("/api/v2/spot/trade/cancel-plan-order", postBody)
+	return resp, err
+}
 
-	uri := constants.SpotTrade + "/changeDepth"
+func (p *SpotOrderClient) OrdersPlanPending(params map[string]string) (string, error) {
+	resp, err := p.BitgetRestClient.DoGet("/api/v2/spot/trade/current-plan-order", params)
+	return resp, err
+}
 
-	resp, err := p.BitgetRestClient.DoPost(uri, postBody)
+func (p *SpotOrderClient) OrdersPlanHistory(params map[string]string) (string, error) {
+	resp, err := p.BitgetRestClient.DoGet("/api/v2/spot/trade/history-plan-order", params)
+	return resp, err
+}
 
+// trader
+func (p *SpotOrderClient) TraderOrderCloseTracking(params map[string]string) (string, error) {
+	postBody, jsonErr := utils.ToJson(params)
+	if jsonErr != nil {
+		return "", jsonErr
+	}
+	resp, err := p.BitgetRestClient.DoPost("/api/v2/copy/spot-trader/order-close-tracking", postBody)
+	return resp, err
+}
+
+func (p *SpotOrderClient) TraderOrderCurrentTrack(params map[string]string) (string, error) {
+	resp, err := p.BitgetRestClient.DoGet("/api/v2/copy/spot-trader/order-current-track", params)
+	return resp, err
+}
+
+func (p *SpotOrderClient) TraderOrderHistoryTrack(params map[string]string) (string, error) {
+	resp, err := p.BitgetRestClient.DoGet("/api/v2/copy/spot-trader/order-history-track", params)
 	return resp, err
 }
