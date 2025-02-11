@@ -11,10 +11,12 @@ var (
 	//websocket config
 	PublicWsUrl  = "wss://ws.bitget.com/v2/ws/public"
 	PrivateWsUrl = "wss://ws.bitget.com/v2/ws/private"
+	IsTestNet    = false
 )
 
-func InitConfig(apiKey, secretKey, passphrase string) {
+func InitConfig(apiKey, secretKey, passphrase string, isTestNet bool) {
 	ApiKey = apiKey
 	SecretKey = secretKey
 	PASSPHRASE = passphrase
+	IsTestNet = isTestNet
 }

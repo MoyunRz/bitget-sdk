@@ -17,6 +17,7 @@ type BitgetRestClient struct {
 	BaseUrl      string
 	HttpClient   http.Client
 	Signer       *Signer
+	IsTestNet    bool
 }
 
 func (p *BitgetRestClient) Init() *BitgetRestClient {
@@ -24,6 +25,7 @@ func (p *BitgetRestClient) Init() *BitgetRestClient {
 	p.ApiSecretKey = config.SecretKey
 	p.BaseUrl = config.BaseUrl
 	p.Passphrase = config.PASSPHRASE
+	p.IsTestNet = config.IsTestNet
 	p.Signer = new(Signer).Init(config.SecretKey)
 	p.HttpClient = http.Client{
 		Timeout: time.Duration(config.TimeoutSecond) * time.Second,
@@ -44,6 +46,9 @@ func (p *BitgetRestClient) DoPost(uri string, params string) (string, error) {
 	utils.Headers(request, p.ApiKey, timesStamp, sign, p.Passphrase)
 	if err != nil {
 		return "", err
+	}
+	if p.IsTestNet {
+		request.Header.Add("paptrading", "1")
 	}
 	response, err := p.HttpClient.Do(request)
 
@@ -75,7 +80,9 @@ func (p *BitgetRestClient) DoGet(uri string, params map[string]string) (string, 
 		return "", err
 	}
 	utils.Headers(request, p.ApiKey, timesStamp, sign, p.Passphrase)
-
+	if p.IsTestNet {
+		request.Header.Add("paptrading", "1")
+	}
 	response, err := p.HttpClient.Do(request)
 
 	if err != nil {
