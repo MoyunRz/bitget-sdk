@@ -10,7 +10,6 @@ import (
 	"github.com/MoyunRz/bitget-sdk/utils"
 	"github.com/gorilla/websocket"
 	"github.com/robfig/cron"
-	"runtime/debug"
 	"sync"
 	"time"
 )
@@ -134,7 +133,6 @@ func (p *BitgetBaseWsClient) tickerLoop() {
 		select {
 		case <-p.Ticker.C:
 			elapsedSecond := time.Now().Sub(p.LastReceivedTime).Seconds()
-
 			if elapsedSecond > constants.ReconnectWaitSecond {
 				applogger.Info("WebSocket reconnect...")
 				p.disconnectWebSocket()
@@ -160,26 +158,10 @@ func (p *BitgetBaseWsClient) disconnectWebSocket() {
 }
 
 func (p *BitgetBaseWsClient) ReadLoop() {
-	defer func() {
-		// Panic 恢复处理
-		if r := recover(); r != nil {
-			// 记录 panic 详细信息
-			applogger.Error("Panic in WebSocket read goroutine: %v", r)
-			// 打印完整的堆栈信息
-			debug.PrintStack()
-			// 可选：发送错误通知
-			if p.ErrorListener != nil {
-				p.ErrorListener(fmt.Sprintf("WebSocket read panic: %v", r))
-			}
-		}
-		time.Sleep(15 * time.Second)
-		p.ReadLoop()
-	}()
-
 	for {
 		if p.WebSocketClient == nil {
 			applogger.Info("Read error: no connection available")
-			time.Sleep(6 * time.Second)
+			time.Sleep(3 * time.Second)
 			continue
 		}
 		var message string
