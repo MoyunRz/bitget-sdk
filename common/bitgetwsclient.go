@@ -6,9 +6,11 @@ import (
 	"github.com/MoyunRz/bitget-sdk/constants"
 	"github.com/MoyunRz/bitget-sdk/logging/applogger"
 	model2 "github.com/MoyunRz/bitget-sdk/model"
+	"github.com/MoyunRz/bitget-sdk/pkg/safe"
 	"github.com/MoyunRz/bitget-sdk/utils"
 	"github.com/gorilla/websocket"
 	"github.com/robfig/cron"
+	"runtime/debug"
 	"sync"
 	"time"
 )
@@ -93,7 +95,7 @@ func (p *BitgetBaseWsClient) Login() {
 }
 
 func (p *BitgetBaseWsClient) StartReadLoop() {
-	go p.ReadLoop()
+	p.ReadLoop()
 }
 
 func (p *BitgetBaseWsClient) ExecuterPing() {
@@ -157,21 +159,42 @@ func (p *BitgetBaseWsClient) disconnectWebSocket() {
 
 func (p *BitgetBaseWsClient) ReadLoop() {
 	for {
-
 		if p.WebSocketClient == nil {
 			applogger.Info("Read error: no connection available")
-			//time.Sleep(TimerIntervalSecond * time.Second)
+			time.Sleep(6 * time.Second)
 			continue
 		}
-
-		_, buf, err := p.WebSocketClient.ReadMessage()
-		if err != nil {
-			applogger.Info("Read error: %s", err)
+		wg := sync.WaitGroup{}
+		var message string
+		safe.Go(func() {
+			wg.Add(1)
+			defer func() {
+				// Panic 恢复处理
+				if r := recover(); r != nil {
+					// 记录 panic 详细信息
+					applogger.Error("Panic in WebSocket read goroutine: %v", r)
+					// 打印完整的堆栈信息
+					debug.PrintStack()
+					// 可选：发送错误通知
+					if p.ErrorListener != nil {
+						p.ErrorListener(fmt.Sprintf("WebSocket read panic: %v", r))
+					}
+				}
+				// 确保 WaitGroup 计数器被正确减少
+				wg.Done()
+			}()
+			_, buf, err := p.WebSocketClient.ReadMessage()
+			if err != nil {
+				applogger.Info("Read error: %s", err)
+				return
+			}
+			message = string(buf)
+		})
+		wg.Wait()
+		if message == "" {
 			continue
 		}
 		p.LastReceivedTime = time.Now()
-		message := string(buf)
-
 		if message == "pong" {
 			applogger.Info("Keep connected:" + message)
 			continue
