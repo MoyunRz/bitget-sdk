@@ -95,7 +95,9 @@ func (p *BitgetBaseWsClient) Login() {
 }
 
 func (p *BitgetBaseWsClient) StartReadLoop() {
-	p.ReadLoop()
+	safe.Go(func() {
+		p.ReadLoop()
+	})
 }
 
 func (p *BitgetBaseWsClient) ExecuterPing() {
@@ -158,39 +160,35 @@ func (p *BitgetBaseWsClient) disconnectWebSocket() {
 }
 
 func (p *BitgetBaseWsClient) ReadLoop() {
+	defer func() {
+		// Panic 恢复处理
+		if r := recover(); r != nil {
+			// 记录 panic 详细信息
+			applogger.Error("Panic in WebSocket read goroutine: %v", r)
+			// 打印完整的堆栈信息
+			debug.PrintStack()
+			// 可选：发送错误通知
+			if p.ErrorListener != nil {
+				p.ErrorListener(fmt.Sprintf("WebSocket read panic: %v", r))
+			}
+		}
+		time.Sleep(15 * time.Second)
+		p.ReadLoop()
+	}()
+
 	for {
 		if p.WebSocketClient == nil {
 			applogger.Info("Read error: no connection available")
 			time.Sleep(6 * time.Second)
 			continue
 		}
-		wg := sync.WaitGroup{}
 		var message string
-		safe.Go(func() {
-			wg.Add(1)
-			defer func() {
-				// Panic 恢复处理
-				if r := recover(); r != nil {
-					// 记录 panic 详细信息
-					applogger.Error("Panic in WebSocket read goroutine: %v", r)
-					// 打印完整的堆栈信息
-					debug.PrintStack()
-					// 可选：发送错误通知
-					if p.ErrorListener != nil {
-						p.ErrorListener(fmt.Sprintf("WebSocket read panic: %v", r))
-					}
-				}
-				// 确保 WaitGroup 计数器被正确减少
-				wg.Done()
-			}()
-			_, buf, err := p.WebSocketClient.ReadMessage()
-			if err != nil {
-				applogger.Info("Read error: %s", err)
-				return
-			}
-			message = string(buf)
-		})
-		wg.Wait()
+		_, buf, err := p.WebSocketClient.ReadMessage()
+		if err != nil {
+			applogger.Info("Read error: %s", err)
+			return
+		}
+		message = string(buf)
 		if message == "" {
 			continue
 		}
