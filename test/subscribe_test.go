@@ -37,6 +37,7 @@ func TestSubscribe(t *testing.T) {
 	client.Subscribe(channels, func(message string) {
 		fmt.Println("appoint:" + message)
 	})
+	client.Connect()
 	fmt.Println("Press ENTER to unsubscribe and stop...")
 	time.Sleep(time.Minute * 10)
 }

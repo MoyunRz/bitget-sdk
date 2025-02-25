@@ -76,8 +76,10 @@ func (p *BitgetBaseWsClient) ConnectWebSocket() {
 
 	ctx, cancel := context.WithCancel(p.ctx)
 	defer cancel()
-	safe.Go(func() { p.ExecuterPing(ctx) })
-	p.ReadLoop()
+	safe.Go(func() {
+		p.ExecuterPing(ctx)
+		p.ReadLoop()
+	})
 
 }
 
