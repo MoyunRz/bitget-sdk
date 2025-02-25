@@ -1,6 +1,8 @@
 package common
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"github.com/MoyunRz/bitget-sdk/config"
 	"github.com/MoyunRz/bitget-sdk/constants"
@@ -9,12 +11,12 @@ import (
 	"github.com/MoyunRz/bitget-sdk/pkg/safe"
 	"github.com/MoyunRz/bitget-sdk/utils"
 	"github.com/gorilla/websocket"
-	"github.com/robfig/cron"
 	"sync"
 	"time"
 )
 
 type BitgetBaseWsClient struct {
+	ctx              context.Context
 	NeedLogin        bool
 	Connection       bool
 	LoginStatus      bool
@@ -30,6 +32,7 @@ type BitgetBaseWsClient struct {
 }
 
 func (p *BitgetBaseWsClient) Init() *BitgetBaseWsClient {
+	p.ctx = context.Background()
 	p.Connection = false
 	p.AllSuribe = model2.NewSet()
 	p.Signer = new(Signer).Init(config.SecretKey)
@@ -47,9 +50,7 @@ func (p *BitgetBaseWsClient) SetListener(msgListener OnReceive, errorListener On
 }
 
 func (p *BitgetBaseWsClient) Connect() {
-
-	p.tickerLoop()
-	p.ExecuterPing()
+	safe.Go(func() { p.tickerLoop() })
 }
 
 func (p *BitgetBaseWsClient) ConnectWebSocket() {
@@ -71,6 +72,13 @@ func (p *BitgetBaseWsClient) ConnectWebSocket() {
 		applogger.Info("WebSocket connected")
 	}
 	p.Connection = true
+	p.LastReceivedTime = time.Now()
+
+	ctx, cancel := context.WithCancel(p.ctx)
+	defer cancel()
+	safe.Go(func() { p.ExecuterPing(ctx) })
+	p.ReadLoop()
+
 }
 
 func (p *BitgetBaseWsClient) Login() {
@@ -99,13 +107,25 @@ func (p *BitgetBaseWsClient) StartReadLoop() {
 	})
 }
 
-func (p *BitgetBaseWsClient) ExecuterPing() {
-	c := cron.New()
-	_ = c.AddFunc("*/15 * * * * *", p.ping)
-	c.Start()
+func (p *BitgetBaseWsClient) ExecuterPing(ctx context.Context) error {
+
+	ticker := time.NewTicker(15 * time.Second)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-ticker.C:
+			err := p.ping()
+			if err != nil {
+				return err
+			}
+		case <-ctx.Done():
+			return nil
+		}
+	}
+
 }
-func (p *BitgetBaseWsClient) ping() {
-	p.Send("ping")
+func (p *BitgetBaseWsClient) ping() error {
+	return p.Send("ping")
 }
 
 func (p *BitgetBaseWsClient) SendByType(req model2.WsBaseReq) {
@@ -113,10 +133,10 @@ func (p *BitgetBaseWsClient) SendByType(req model2.WsBaseReq) {
 	p.Send(json)
 }
 
-func (p *BitgetBaseWsClient) Send(data string) {
+func (p *BitgetBaseWsClient) Send(data string) error {
 	if p.WebSocketClient == nil {
 		applogger.Error("WebSocket sent error: no connection available")
-		return
+		return errors.New("WebSocket sent error: no connection available")
 	}
 	applogger.Info("sendMessage:%s", data)
 	p.SendMutex.Lock()
@@ -124,7 +144,9 @@ func (p *BitgetBaseWsClient) Send(data string) {
 	p.SendMutex.Unlock()
 	if err != nil {
 		applogger.Error("WebSocket sent error: data=%s, error=%s", data, err)
+		return err
 	}
+	return nil
 }
 
 func (p *BitgetBaseWsClient) tickerLoop() {
@@ -137,9 +159,23 @@ func (p *BitgetBaseWsClient) tickerLoop() {
 				applogger.Info("WebSocket reconnect...")
 				p.disconnectWebSocket()
 				p.ConnectWebSocket()
+				p.ReConnectSend()
 			}
 		}
 	}
+}
+
+// ReConnectSend 重连后重新订阅
+func (p *BitgetBaseWsClient) ReConnectSend() {
+	var args []interface{}
+	for req, _ := range p.ScribeMap {
+		args = append(args, req)
+	}
+	wsBaseReq := model2.WsBaseReq{
+		Op:   constants.WsOpSubscribe,
+		Args: args,
+	}
+	p.SendByType(wsBaseReq)
 }
 
 func (p *BitgetBaseWsClient) disconnectWebSocket() {
@@ -198,31 +234,26 @@ func (p *BitgetBaseWsClient) ReadLoop() {
 		v, e = jsonMap["data"]
 		if e {
 			listener := p.GetListener(jsonMap["arg"])
-
 			listener(message)
 			continue
 		}
-		p.handleMessage(message)
+		applogger.Info("Received msg:" + message)
+		//p.handleMessage(message)
 	}
 
 }
 
 func (p *BitgetBaseWsClient) GetListener(argJson interface{}) OnReceive {
-
 	mapData := argJson.(map[string]interface{})
-
-	subscribeReq := model2.SubscribeReq{
-		InstType: fmt.Sprintf("%v", mapData["instType"]),
-		Channel:  fmt.Sprintf("%v", mapData["channel"]),
-		InstId:   fmt.Sprintf("%v", mapData["instId"]),
+	instType := fmt.Sprintf("%s", mapData["instType"])
+	channel := fmt.Sprintf("%s", mapData["channel"])
+	instId := fmt.Sprintf("%s", mapData["instId"])
+	for req, receive := range p.ScribeMap {
+		if req.InstType == instType && req.Channel == channel && req.InstId == instId {
+			return receive
+		}
 	}
-
-	v, e := p.ScribeMap[subscribeReq]
-
-	if !e {
-		return p.Listener
-	}
-	return v
+	return p.Listener
 }
 
 type OnReceive func(message string)

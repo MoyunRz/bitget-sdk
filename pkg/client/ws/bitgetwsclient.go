@@ -17,8 +17,6 @@ func (p *BitgetWsClient) Init(needLogin bool, listener common.OnReceive, errorLi
 	p.bitgetBaseWsClient = new(common.BitgetBaseWsClient).Init()
 	p.bitgetBaseWsClient.SetListener(listener, errorListener)
 	p.bitgetBaseWsClient.ConnectWebSocket()
-	p.bitgetBaseWsClient.StartReadLoop()
-	p.bitgetBaseWsClient.ExecuterPing()
 
 	if needLogin {
 		applogger.Info("login in ...")
