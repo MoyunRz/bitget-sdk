@@ -1,75 +1,43 @@
 package ws
 
 import (
-	"github.com/MoyunRz/bitget-sdk/common"
-	"github.com/MoyunRz/bitget-sdk/constants"
-	"github.com/MoyunRz/bitget-sdk/logging/applogger"
-	model2 "github.com/MoyunRz/bitget-sdk/model"
+	"crypto/tls"
 	"strings"
+	"sync"
+
+	"github.com/MoyunRz/bitget-sdk/common"
+	model2 "github.com/MoyunRz/bitget-sdk/model"
+	"github.com/kurosann/aqt-core/ws"
 )
 
 type BitgetWsClient struct {
 	bitgetBaseWsClient *common.BitgetBaseWsClient
 	NeedLogin          bool
+	once               sync.Once
 }
 
-func (p *BitgetWsClient) Init(needLogin bool, listener common.OnReceive, errorListener common.OnReceive) *BitgetWsClient {
-	p.bitgetBaseWsClient = new(common.BitgetBaseWsClient).Init()
-	p.bitgetBaseWsClient.SetListener(listener, errorListener)
-	p.bitgetBaseWsClient.ConnectWebSocket()
-
-	if needLogin {
-		applogger.Info("login in ...")
-		p.bitgetBaseWsClient.Login()
-		for {
-			if !p.bitgetBaseWsClient.LoginStatus {
-				continue
-			}
-			break
-		}
-		applogger.Info("login in ... success")
+func NewBitgetWsClient(needLogin bool) *BitgetWsClient {
+	p := &BitgetWsClient{
+		bitgetBaseWsClient: common.NewBitgetClient(ws.Dialer{
+			Tls: &tls.Config{
+				ServerName: "ws.bitget.com",
+			},
+		}, needLogin),
+		NeedLogin: needLogin,
 	}
-
 	return p
-
 }
 
-func (p *BitgetWsClient) Connect() *BitgetWsClient {
+func (p *BitgetWsClient) init() {
 	p.bitgetBaseWsClient.Connect()
-	return p
 }
 
 func (p *BitgetWsClient) UnSubscribe(list []model2.SubscribeReq) {
-
-	var args []interface{}
-	for i := 0; i < len(list); i++ {
-		delete(p.bitgetBaseWsClient.ScribeMap, list[i])
-		p.bitgetBaseWsClient.AllSuribe.Add(list[i])
-		p.bitgetBaseWsClient.AllSuribe.Remove(list[i])
-		args = append(args, list[i])
+	p.once.Do(p.init)
+	for _, req := range list {
+		req = toUpperReq(req)
+		p.bitgetBaseWsClient.UnListen(req)
 	}
-
-	wsBaseReq := model2.WsBaseReq{
-		Op:   constants.WsOpUnsubscribe,
-		Args: args,
-	}
-
-	p.SendMessageByType(wsBaseReq)
-}
-
-func (p *BitgetWsClient) SubscribeDef(list []model2.SubscribeReq) {
-
-	var args []interface{}
-	for i := 0; i < len(list); i++ {
-		req := toUpperReq(list[i])
-		args = append(args, req)
-	}
-	wsBaseReq := model2.WsBaseReq{
-		Op:   constants.WsOpSubscribe,
-		Args: args,
-	}
-
-	p.SendMessageByType(wsBaseReq)
 }
 
 func toUpperReq(req model2.SubscribeReq) model2.SubscribeReq {
@@ -77,33 +45,12 @@ func toUpperReq(req model2.SubscribeReq) model2.SubscribeReq {
 	req.InstId = strings.ToUpper(req.InstId)
 	req.Channel = strings.ToLower(req.Channel)
 	return req
-
 }
 
 func (p *BitgetWsClient) Subscribe(list []model2.SubscribeReq, listener common.OnReceive) {
-
-	var args []interface{}
-	for i := 0; i < len(list); i++ {
-		req := toUpperReq(list[i])
-		args = append(args, req)
-
-		p.bitgetBaseWsClient.ScribeMap[req] = listener
-		p.bitgetBaseWsClient.AllSuribe.Add(req)
-		args = append(args, req)
+	p.once.Do(p.init)
+	for _, req := range list {
+		req = toUpperReq(req)
+		p.bitgetBaseWsClient.Listen(req, listener)
 	}
-
-	wsBaseReq := model2.WsBaseReq{
-		Op:   constants.WsOpSubscribe,
-		Args: args,
-	}
-
-	p.bitgetBaseWsClient.SendByType(wsBaseReq)
-}
-
-func (p *BitgetWsClient) SendMessage(msg string) {
-	p.bitgetBaseWsClient.Send(msg)
-}
-
-func (p *BitgetWsClient) SendMessageByType(req model2.WsBaseReq) {
-	p.bitgetBaseWsClient.SendByType(req)
 }

@@ -2,37 +2,56 @@ package ws
 
 import (
 	"fmt"
-	"github.com/MoyunRz/bitget-sdk/model"
 	"testing"
+	"time"
+
+	"github.com/MoyunRz/bitget-sdk/model"
+	"github.com/kurosann/aqt-core/logger"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestBitgetWsClient_New(t *testing.T) {
-
-	client := new(BitgetWsClient).Init(false, func(message string) {
-		fmt.Println("success:" + message)
-	}, func(message string) {
-		fmt.Println("error:" + message)
-	})
+	t.Setenv("http_proxy", "http://127.0.0.1:7890")
+	t.Setenv("https_proxy", "http://127.0.0.1:7890")
+	t.Setenv("all_proxy", "socks5://127.0.0.1:7890")
+	client := NewBitgetWsClient(false)
 
 	var channelsDef []model.SubscribeReq
 	subReqDef1 := model.SubscribeReq{
-		InstType: "UMCBL",
-		Channel:  "account",
-		InstId:   "default",
+		InstType: "USDT-FUTURES",
+		Channel:  "books1",
+		InstId:   "ETHUSDT",
 	}
 	channelsDef = append(channelsDef, subReqDef1)
-	client.SubscribeDef(channelsDef)
+
+	testChannel := make(chan string)
+	client.Subscribe(channelsDef, func(message string) {
+		testChannel <- message
+	})
 
 	var channels []model.SubscribeReq
 	subReq1 := model.SubscribeReq{
-		InstType: "UMCBL",
-		Channel:  "account",
-		InstId:   "default",
+		InstType: "USDT-FUTURES",
+		Channel:  "books1",
+		InstId:   "ETHUSDT",
 	}
 	channels = append(channels, subReq1)
 	client.Subscribe(channels, func(message string) {
-		fmt.Println("appoint:" + message)
+		testChannel <- message
 	})
-	client.Connect()
+	logger.Debug("subscribe done")
+	go func() {
+		time.Sleep(3 * time.Second)
+		close(testChannel)
+	}()
 
+	mapTest := make(map[string]bool)
+
+	for message := range testChannel {
+		if _, ok := mapTest[message]; !ok {
+			mapTest[message] = true
+		}
+		fmt.Println("appoint:" + message)
+	}
+	assert.GreaterOrEqual(t, len(mapTest), 2)
 }
